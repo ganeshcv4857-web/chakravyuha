@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "build/web"],
+      "port": 8080
+    },
+    {
+      "name": "gameserver",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/server.js"],
+      "port": 8787
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+# Build outputs
+build/
+dist/
+*.exe
+*.o
+shot_*.png
+duel_*.png
+screenshot_*.png
+*.log
+# Generated from res/conch.mp3 by tools/embed.py during the build
+res/conch_mp3.h
+# Local tool settings
+.vercel/
+node_modules/

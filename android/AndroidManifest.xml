@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chakravyuha for Android: a pure native app. NativeActivity (part of Android
+  itself) loads libmain.so, so the APK contains no Java code at all.
+  Version numbers and SDK levels are passed by android/build.sh.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.chakravyuha.game">
+
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:label="Chakravyuha"
+        android:icon="@mipmap/ic_launcher"
+        android:hasCode="false"
+        android:allowBackup="false"
+        android:extractNativeLibs="true"
+        android:appCategory="game"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+
+        <activity
+            android:name="android.app.NativeActivity"
+            android:label="Chakravyuha"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
+            android:resizeableActivity="false"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|screenLayout|smallestScreenSize|navigation|uiMode">
+
+            <!-- Tells NativeActivity which native library to load. -->
+            <meta-data android:name="android.app.lib_name" android:value="main" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

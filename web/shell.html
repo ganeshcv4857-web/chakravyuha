@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#18110B">
+<meta name="description" content="Chakravyuha: breach the five rotating rings of Kurukshetra's spiral formation, or guard them. Solo, same-device or online.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Chakravyuha</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  html, body { margin: 0; height: 100%; background: #18110B; overflow: hidden;
+               overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+  canvas#canvas { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh;
+                  touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
+  .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+             justify-content: center; gap: 18px; background: #18110B; color: #F0E2C4;
+             font-family: "Palatino Linotype", Palatino, Georgia, serif; text-align: center; z-index: 5; }
+  .overlay h1 { margin: 0; color: #F0C454; letter-spacing: .18em; font-size: clamp(28px, 7vw, 64px); }
+  .overlay p { margin: 0; color: #AA8E66; font-size: clamp(14px, 3.4vw, 20px); padding: 0 24px; }
+  #loading .ring { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #3A2A1A;
+                   border-top-color: #E0AA3A; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Phones held upright: the battlefield needs landscape. */
+  #rotate { display: none; }
+  @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+  #rotate .phone { width: 46px; height: 80px; border: 4px solid #E0AA3A; border-radius: 10px;
+                   animation: turn 2s ease-in-out infinite; }
+  @keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+</style>
+</head>
+<body>
+<canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+
+<div id="loading" class="overlay">
+  <h1>CHAKRAVYUHA</h1>
+  <div class="ring"></div>
+  <p id="status">Tuning the war drums&hellip;</p>
+</div>
+
+<div id="rotate" class="overlay">
+  <div class="phone"></div>
+  <h1 style="font-size:28px">Turn your phone sideways</h1>
+  <p>The battlefield is laid out in landscape.</p>
+</div>
+
+<script>
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    print: function (t) { (window.gameLog = window.gameLog || []).push(t); console.log(t); },
+    printErr: function (t) { console.warn(t); },
+    setStatus: function (t) {
+      if (t) document.getElementById('status').textContent = t.replace(/\(.*\)/, '').trim() || 'Loading…';
+    }
+  };
+  // Called from the game once the title screen is up.
+  window.onGameReady = function () { document.getElementById('loading').style.display = 'none'; };
+
+  // On a phone, the first tap goes fullscreen and locks landscape where allowed.
+  function goImmersive() {
+    var el = document.documentElement;
+    if (!document.fullscreenElement && el.requestFullscreen && matchMedia('(pointer: coarse)').matches) {
+      el.requestFullscreen({ navigationUI: 'hide' }).then(function () {
+        if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
+      }).catch(function () {});
+    }
+  }
+  window.addEventListener('pointerdown', goImmersive, { passive: true });
+  window.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+
+  // Offline play and "Add to Home Screen" (not for local file:// testing).
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

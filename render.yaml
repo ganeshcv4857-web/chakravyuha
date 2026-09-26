@@ -1,0 +1,11 @@
+# Render blueprint for the online-battle server (server/server.js).
+# Deploy: https://render.com/deploy?repo=<this repository's URL>
+services:
+  - type: web
+    name: chakravyuha-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: echo "no dependencies to install"
+    startCommand: node server.js
+    healthCheckPath: /
