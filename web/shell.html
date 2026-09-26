@@ -71,8 +71,15 @@
   window.addEventListener('pointerdown', goImmersive, { passive: true });
   window.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
 
-  // Offline play and "Add to Home Screen" (not for local file:// testing).
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  // The Android app's Back button: the game reads window.chakraBack each
+  // frame, and tells the app when it is on the title screen (chakraAtRoot).
+  window.chakraBack = 0;
+  window.chakraAtRoot = 1;
+
+  // Offline play and "Add to Home Screen". The Android app already carries the
+  // files, so it skips this (and local file:// testing can't use it).
+  var inApp = location.hostname === 'appassets.chakravyuha';
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !inApp) {
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }
 </script>

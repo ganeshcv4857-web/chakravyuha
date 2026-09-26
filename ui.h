@@ -45,6 +45,7 @@ void ui_close(void);
 
 /* "Go back": Esc on a PC, the Back button on Android. */
 bool ui_back_pressed(void);
+void ui_new_frame(void); /* call once at the start of every frame */
 
 /* Every finger on the screen (or the held mouse), in canvas coordinates. */
 int ui_pointers(Vector2 *out, int max);

@@ -28,68 +28,123 @@ Command-line options: `--seed N` (formation for the first battle), `--k N`
 `--shots-duel` (scripted tours that save screenshots, used for testing).
 Rotation, breach and A* events are also logged to the console.
 
-## Releases (version 1.0.0)
+## Play it
 
-| File | Platform | How to build |
+| Where | What | How to build |
 |---|---|---|
-| `dist/Chakravyuha-v1.0.0-windows.zip` | Windows 7+ (64-bit) | `make release` |
-| `dist/Chakravyuha-v1.0.0-android.apk` | Android 7.0+ phones and tablets | `make android` (from Git Bash) |
+| **https://chakravyuha-six.vercel.app** | The website: any browser on a PC or phone; solo, same-device and **online** battles | `make web`, then deploy `build/web` (see below) |
+| `dist/Chakravyuha-v1.1.0-android.apk` | Android 7.0+ app: the website packed into an app; plays offline and online | `make android` (from Git Bash) |
+| `dist/Chakravyuha-v1.1.0-windows.zip` | Windows 7+ (64-bit): solo and same-keyboard battles | `make release` |
 
 **Windows:** the zip holds `Chakravyuha.exe` (no console window, with an
 icon and version info), a player `README.txt`, and an `assets/` folder for an
-optional sound pack. Unzip it anywhere and double-click the exe; it needs only
+optional sound pack. Unzip it anywhere and double-click the exe. It needs only
 DLLs that ship with Windows. The exe is not code-signed, so SmartScreen may
 ask you to click *More info → Run anyway*.
 
-**Android:** one APK covers 64-bit ARM (almost every current phone), 32-bit
-ARM (older phones) and x86_64 (emulators, Chromebooks). To install, copy the
-APK to the phone and open it; Android asks once to allow installs from that
-app (Files, Chrome...). Play Protect may warn about an unknown developer
-because the app isn't from the Play Store.
+**Android:** copy the APK to the phone and open it. Android asks once to allow
+installs from that app (Files, Chrome...). Play Protect may warn about an
+unknown developer because the app isn't from the Play Store. Version 1.1.0
+installs as an update over 1.0.0.
 
-### Building the Android APK
-`android/build.sh` builds the APK without Gradle or Android Studio. It
-compiles raylib and the game with the NDK's clang for each ABI, links
-`libmain.so` (loaded by Android's built-in `NativeActivity`, so the APK has
-no Java code), packages the manifest and icons with `aapt2`, and then aligns
-and signs the APK. It expects these under `ANDROID_TOOLS` (default
-`D:/android-tools`). Any location works if you set the variables at the top of
-the script:
+**Website on a phone:** open the link and turn the phone sideways. The first
+tap goes full screen. *Add to Home Screen* installs it like an app, and
+after the first visit it opens without a connection (online battles still
+need one).
+
+## Online battles
+
+1. One player chooses **Online Battle → Host a battle**, picks an army, forges
+   a warrior and gets a **four-letter code**.
+2. The other player chooses **Join with a code** and types it in. They lead the
+   other army and forge their warrior.
+3. The host blows the conch. Either player can be on a phone or a PC.
+
+How it works:
+- Both copies of the game run the same formation, from the same seed.
+- The guest sends only its key presses and taps to the host.
+- The **host's copy is the referee.** It checks each move (cooldowns, edges,
+  wake-up) and broadcasts every accepted move to both players in order.
+- Because a formation is fully determined by its seed and the order of moves,
+  both copies stay identical, including every gate rotation.
+- `make test` includes a 200-battle check that a guest replaying the host's
+  moves never drifts (`test_online_lockstep`).
+
+The server (`server/server.js`) only pairs players by code and relays their
+messages. It is plain Node.js with no packages: the WebSocket handshake and
+framing are written out in the file. `node server/test.js` checks it. It runs
+on Render's free tier from `render.yaml`. After 15 idle minutes it sleeps, so
+the first online battle of the day can take up to a minute to connect.
+
+Local testing: run `node server/server.js` and serve `build/web` from
+localhost. The page then uses `ws://localhost:8787`. Anywhere else,
+`?server=wss://...` on the page URL chooses a different server.
+
+## Building the web and Android versions
+
+**Web (`web/build.sh`):** compiles the same C code to WebAssembly with the
+Emscripten SDK that comes with the raylib installer (`C:/raylib/emsdk`). The
+output is a static site in `build/web`: `index.html/js/wasm/data`, the PWA
+manifest, a service worker for offline play, and icons. The site bundles the
+Crimson Text font (SIL Open Font License, `res/fonts/OFL.txt`) because a
+browser can't use Windows fonts.
+
+To deploy with the Vercel CLI (already logged in):
+```
+cd build/web && vercel deploy --prod
+```
+`web/vercelignore` keeps any `.env` file out of the upload.
+
+**Android (`android-web/build.sh`):** a small Java activity
+(`android-web/src/.../MainActivity.java`) shows the web build in a
+full-screen WebView. The game files are packed in the APK and served from a
+private `https://appassets.chakravyuha/` address. The activity passes the Back
+button to the game, keeps the screen on and pauses the game in the
+background. The script uses `javac`, `d8`, `aapt2`, `zipalign` and
+`apksigner`, with no Gradle. It expects these tools under `ANDROID_TOOLS`
+(default `D:/android-tools`):
 
 | Folder | Download |
 |---|---|
-| `ndk/android-ndk-r28c` | `android-ndk-r28c-windows.zip` (dl.google.com) |
 | `sdk/build-tools/35.0.0` | `build-tools_r35_windows.zip` (dl.google.com) |
 | `sdk/platforms/android-35` | `platform-35_r02.zip` (dl.google.com) |
-| `jdk-17` | Microsoft OpenJDK 17 zip (for `apksigner` and `keytool`) |
+| `jdk-17` | Microsoft OpenJDK 17 zip |
+| `ndk/android-ndk-r28c` | only for `make android-native` (the 1.0.0 fully native build) |
 
-The first build creates a signing key in `ANDROID_TOOLS/keys/`, with its
-password in the `.pass` file next to it. **Keep both files safe:** Android
-only accepts an update to an installed app if it is signed with the same
-key. The key is deliberately kept outside the project folder.
+The signing key lives in `ANDROID_TOOLS/keys/`, with its password in the
+`.pass` file next to it. **Keep both files safe:** Android only accepts an
+update to an installed app if it is signed with the same key. The key is
+deliberately kept outside the project folder.
 
-To release a new version, bump `GAME_VERSION` in `app.h` and the version
-numbers in `res/chakravyuha.rc`, and pass a higher `VERSION_CODE` to the
-Android build (`VERSION_CODE=2 make android`). `make icons` re-renders every
-icon from `tools/make_icon.c`.
+To release a new version:
+1. Bump `GAME_VERSION` in `app.h`, the version in `res/chakravyuha.rc` and
+   `CACHE` in `web/sw.js`.
+2. Build Android with a higher code: `VERSION_CODE=3 make android`.
+
+`make icons` re-renders every icon from `tools/make_icon.c`.
 
 ## Playing
 
-1. **Title:** choose **Solo Battle** or **Two Warriors** (two players on one
-   keyboard). Mouse and keyboard both work in every menu.
+1. **Title:** choose **Solo Battle**, **Two Warriors** (two players on one
+   keyboard or one phone) or, on the website and Android app, **Online
+   Battle**. Mouse, keyboard and touch all work in every menu.
 2. **Choose your side:** the **Pandavas** breach the formation and the
    **Kauravas** guard it. You can also let **Shakuni's dice** decide.
    - Solo: the AI takes the other side. A Kaurava AI hunts with A*; a Pandava
      AI flees along BFS distance maps.
-   - Two warriors: Player 1 uses **WASD** and Player 2 the **arrow keys**,
-     whichever side each ends up on.
+   - Two warriors: Player 1 uses **WASD** (the left pad on a phone) and
+     Player 2 the **arrow keys** (the right pad).
 3. **Forge your warrior:** type a name, pick one of the legends (Abhimanyu,
    Arjuna, Bhima... / Duryodhana, Karna, Drona, Jayadratha...) or customise
    skin, hair, headgear (mukut crown, turban, war helmet, peacock circlet),
    facial hair, tilak, kundala earrings, armour and expression. The portrait
-   is drawn from these choices and appears on the face-off screen, in the HUD
-   and as your token on the battlefield.
-4. **Face-off:** set K and gate capture, then **Sound the conch!**
+   is drawn from these choices and appears on the face-off screen, beside the
+   battlefield and as your token on it.
+4. **Face-off:** set K and gate capture, then **Blow the conch!**
+
+The Pandava wins by reaching the core. The Kaurava wins by landing on the
+Pandava's node. Every K gate crossings, by either side, the gates rotate and
+the Kaurava gets a little faster.
 
 ### Controls in battle
 
@@ -101,29 +156,32 @@ icon from `tools/make_icon.c`.
 | B | show the Pandava's BFS route to the core |
 | V | show the Kaurava's A* route and the nodes A* expanded |
 | L | node labels (`R2.5` = ring 2, index 5; ring 1 is outermost) |
-| [ / ] | decrease / increase the rotation threshold K |
-| G | force a rotation now (for demos) |
-| C | toggle gate capture (Union-Find) |
+| [ / ] | decrease / increase the rotation threshold K (offline) |
+| G | force a rotation now (for demos, offline) |
+| C | toggle gate capture (Union-Find, offline) |
 | P | autopilot (solo Pandava only) |
-| R / N | rematch this formation / new formation |
+| R / N | rematch this formation / new formation (the host, online) |
 | M / H / Esc | mute / hide controls / main menu |
 
 Letter badges (or arrow badges for Player 2) beside each human warrior show
 the moves available right now.
 
 ### On a phone
-- Play in landscape. **Tap a glowing room** next to your warrior to step there.
-- Or use the **arrow pad** in the corner: ↺ / ↻ walk around the ring, ▲ goes
-  through a gate inward, ▼ falls back outward. Arrows you can't use right
-  now are dimmed.
-- In a two-player game each player gets their own pad, one in each bottom
-  corner. Both can be pressed at once.
-- The command buttons under **COMMANDS** in the side panel replace the keyboard
-  shortcuts (route, A* path, labels, capture, autopilot, mute, menu).
+On a phone held sideways, the battle uses the whole screen:
+- The formation sits in the middle. Each warrior gets a column with a big
+  portrait, their progress and a large **arrow pad**. The PC side panel and
+  chronicle are left out.
+- **Tap a glowing room** next to your warrior to step there. Or use the arrow
+  pad: ↺ / ↻ walk around the ring, ▲ goes through a gate inward, ▼ falls back
+  outward. Arrows you can't use right now are dimmed.
+- In a two-player game each player gets their own pad and column. Both pads
+  can be pressed at once.
+- Big buttons replace the keyboard shortcuts (route, A* path, labels, capture,
+  autopilot, mute, menu).
 - Tap your name in the character creator to type it on the on-screen keyboard.
-- The Back button works like Esc. The Pandava wins by reaching the core. The
-Kaurava wins by landing on the Pandava's node. Every K gate crossings, by
-either side, the gates rotate and the Kaurava gets a little faster.
+- The Back button works like Esc.
+- Performance: phones skip anti-aliasing, and each face is drawn once into a
+  cached texture instead of every frame.
 
 ## Sound and music
 
@@ -134,7 +192,7 @@ ships as a single executable:
 |---|---|
 | Battle and menu music | Dhol and nagara drum patterns, a Karplus-Strong plucked tanpura drone, and a shehnai-like reed playing phrases in a raga scale. Written as seamless loops |
 | Breaching a gate | Sword clash (inharmonic metal partials plus an impact and a "shing") |
-| Battle start and victory | A recorded conch shell (shankh): `res/conch.mp3`, compiled into the game by `tools/embed.py`. Replace that file and rebuild to change it |
+| Blowing the conch (battle start) and victory | A recorded conch shell (shankh): `res/conch.mp3`, compiled into the game by `tools/embed.py`. Replace that file and rebuild to change it |
 | Formation rotates | War-drum roll |
 | Kaurava crosses a gate | War horn |
 | Movement | Footsteps. The Kaurava's armoured steps get louder and pan toward you as it closes in, and a heartbeat drum sounds when it is two steps away |
@@ -161,7 +219,10 @@ The title screen shows how many pack files were loaded.
 | `entity.h/.c` | Warrior state and node-snapped movement that only follows edges found in the adjacency list |
 | `game.h/.c` | Rules: human/AI control of each side, breach counter, rotation trigger, A* replan triggers, the fleeing AI, captures, win/lose, event log |
 | `character.h/.c` | Warrior data: look options and the legendary presets |
-| `main.c`, `menu.c`, `render.c`, `portrait.c`, `ui.c`, `sfx.c` | raylib front end: screens, battlefield and HUD, procedural portraits, widgets, audio. The only files that call raylib |
+| `main.c`, `menu.c`, `render.c`, `portrait.c`, `ui.c`, `sfx.c` | raylib front end: screens, battlefield and HUD (desktop and phone layouts), procedural portraits, widgets, audio. The only files that call raylib |
+| `online.c`, `net.c` | Online battles: lobby, room codes, the host-as-referee move protocol, and a WebSocket bridge to the browser |
+| `server/` | The online relay server (Node.js, no dependencies) and its test |
+| `web/`, `android-web/` | Web page shell, PWA files, and the Android WebView app |
 | `tests/` | `graph_dump.c` (Phase 1 printout) and `test_all.c` (automated checks) |
 | `android/`, `res/`, `packaging/`, `tools/` | Release builds: the Android manifest, icons and build script; the Windows icon and version resource; the player readme; the icon renderer and the packaging scripts |
 

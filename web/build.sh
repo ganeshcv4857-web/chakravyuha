@@ -38,6 +38,8 @@ cp web/manifest.webmanifest web/sw.js "$OUT/"
 cp android/res/mipmap-xxxhdpi/ic_launcher.png "$OUT/icon-192.png"
 cp res/icon_512.png "$OUT/icon-512.png"
 cp res/fonts/OFL.txt "$OUT/font-license.txt"
-[ -f web/vercel.json ] && cp web/vercel.json "$OUT/"
+cp web/vercel.json "$OUT/"
+cp web/vercelignore "$OUT/.vercelignore"   # never upload env files
+rm -f "$OUT"/.env*
 
 echo "built $OUT ($(du -sk "$OUT" | cut -f1) KB)"

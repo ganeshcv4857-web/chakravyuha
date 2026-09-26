@@ -135,9 +135,28 @@ void ui_clip_end(void)
     EndScissorMode();
 }
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+/* The Android app's Back button sets window.chakraBack (see web/shell.html). */
+EM_JS(int, web_back_requested, (void), {
+    var b = window.chakraBack | 0;
+    window.chakraBack = 0;
+    return b;
+});
+#endif
+
+static bool page_back; /* the page's Back request, read once per frame */
+
+void ui_new_frame(void)
+{
+#if defined(__EMSCRIPTEN__)
+    page_back = web_back_requested() != 0;
+#endif
+}
+
 bool ui_back_pressed(void)
 {
-    return IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_BACK);
+    return page_back || IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_BACK);
 }
 
 int ui_pointers(Vector2 *out, int max)

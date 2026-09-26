@@ -5,8 +5,10 @@
 #   make test      headless tests: graph dump + pathfinding/union-find/rules
 #   make dump      Phase 1 graph check: print every adjacency list
 #   make release   Windows release: dist/Chakravyuha-v<version>-windows.zip
-#   make android   Android release: dist/Chakravyuha-v<version>-android.apk
-#                  (run from Git Bash; needs the Android tools, see README)
+#   make web       browser version in build/web (Emscripten; online play)
+#   make android   Android app: the web version in a WebView (online + offline)
+#   make android-native   the older fully native Android build (offline only)
+#                  (Android/web targets: run from Git Bash; see README)
 #   make icons     re-render the icons in res/ and android/res/
 #   make clean
 #
@@ -45,7 +47,7 @@ GAME := chakravyuha$(EXE)
 DUMP := graph_dump$(EXE)
 TEST := test_all$(EXE)
 
-.PHONY: all run test dump release android icons clean
+.PHONY: all run test dump release web android android-native icons clean
 
 all: $(GAME)
 
@@ -85,8 +87,14 @@ $(WIN_EXE): $(UI_SRC) $(UI_HDR) $(CORE_SRC) $(CORE_HDR) $(WIN_DIR)/resources.o
 $(WIN_ZIP): $(WIN_EXE) packaging/README.txt packaging/assets-README.txt tools/package_windows.py
 	$(PYTHON) tools/package_windows.py $(VERSION)
 
-# ---- Android release (see android/build.sh) ---------------------------------
-android:
+# ---- Web and Android --------------------------------------------------------
+web:
+	bash web/build.sh
+
+android: web
+	bash android-web/build.sh
+
+android-native:
 	bash android/build.sh
 
 # ---- Icons: rendered from the same emblem for every platform ----------------

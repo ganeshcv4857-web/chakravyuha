@@ -51,7 +51,7 @@ GAME_SRC="main.c menu.c render.c portrait.c ui.c sfx.c online.c net.c graph.c pa
 RAYLIB_MODULES="rcore rshapes rtextures rtext rmodels raudio"
 
 OUT="$ROOT/build/android"
-APK="$ROOT/dist/Chakravyuha-v$VERSION_NAME-android.apk"
+APK="$ROOT/dist/Chakravyuha-v$VERSION_NAME-android-native.apk"
 
 target_for() {
     case "$1" in

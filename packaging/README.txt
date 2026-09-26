@@ -1,4 +1,4 @@
-CHAKRAVYUHA  v1.0.0
+CHAKRAVYUHA  v1.1.0
 The spiral formation of Kurukshetra
 ==================================================================
 

@@ -41,6 +41,7 @@ EM_JS(int, web_is_touch, (void), {
 EM_JS(int, web_width, (void), { return window.innerWidth; });
 EM_JS(int, web_height, (void), { return window.innerHeight; });
 EM_JS(void, web_ready, (void), { if (window.onGameReady) window.onGameReady(); });
+EM_JS(void, web_set_root, (int at_root), { window.chakraAtRoot = at_root; });
 /* Page URL parameter (e.g. ?test=host), copied into out; "" if absent. */
 EM_JS(void, web_param, (const char *name, char *out, int size), {
     var v = new URLSearchParams(location.search).get(UTF8ToString(name)) || "";
@@ -463,6 +464,7 @@ int main(int argc, char **argv)
             SetWindowSize(web_width(), web_height());
 #endif
 
+        ui_new_frame();
         sfx_update(dt);
         online_pump(&app, dt);
         BeginDrawing();
@@ -497,6 +499,9 @@ int main(int argc, char **argv)
 
         if (app.screen == before)
             app.screen_time += dt;
+#if defined(__EMSCRIPTEN__)
+        web_set_root(app.screen == SCREEN_TITLE); /* Back there closes the app */
+#endif
         tour_step(&tour);
 #if defined(__EMSCRIPTEN__)
         webtest_step(&app, dt);
