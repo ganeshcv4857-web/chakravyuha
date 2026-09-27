@@ -9,3 +9,4 @@ services:
     buildCommand: echo "no dependencies to install"
     startCommand: node server.js
     healthCheckPath: /
+    autoDeploy: true   # redeploy on every push to main
