@@ -5,8 +5,23 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 const PORT = 18787;
+const net = require('net');
 const srv = spawn(process.execPath, [path.join(__dirname, 'server.js')],
-                  { env: { ...process.env, PORT: String(PORT) } });
+                  { env: { ...process.env, PORT: String(PORT), HEARTBEAT_MS: '200', TIMEOUT_MS: '700' } });
+
+// A raw client that joins a room and then never answers again.
+function silentJoin(code) {
+  const sock = net.connect(PORT, 'localhost', () => {
+    sock.write('GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+               'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n');
+    const text = Buffer.from(`JOIN|${code}|1.1.0`);
+    const mask = Buffer.from([1, 2, 3, 4]);
+    const body = Buffer.from(text.map((b, i) => b ^ mask[i & 3]));
+    sock.write(Buffer.concat([Buffer.from([0x81, 0x80 | text.length]), mask, body]));
+  });
+  sock.on('data', () => {}); // read, but never reply (no pongs)
+  return sock;
+}
 
 function client() {
   const ws = new WebSocket(`ws://localhost:${PORT}`);
@@ -61,6 +76,14 @@ function expect(got, want) {
 
   guest.close();
   expect(await host.next(), 'PEER|left');
+
+  // A guest that goes silent is dropped by the heartbeat.
+  host.send('HOST|1.1.0');
+  const room2 = (await host.next()).split('|')[1];
+  const silent = silentJoin(room2);
+  expect(await host.next(), 'PEER|joined');
+  expect(await host.next(), 'PEER|left');
+  silent.destroy();
 
   console.log('SERVER TEST PASSED');
   srv.kill();

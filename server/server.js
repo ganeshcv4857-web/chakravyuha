@@ -22,6 +22,14 @@ const PORT = Number(process.env.PORT) || 8787;
 const MAX_MESSAGE = 1024;                  // game messages are tiny
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O: easy to read aloud
 const rooms = new Map();                   // code -> { host, guest, version, created }
+const clients = new Set();
+
+// Heartbeat. Some hosting proxies never pass on a closed connection, so the
+// server pings every client and drops any that stay silent too long (which
+// tells their opponent). Browsers answer pings automatically, and the game
+// also sends its own PING every 20 s.
+const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS) || 15000;
+const TIMEOUT_MS = Number(process.env.TIMEOUT_MS) || 45000;
 
 // ---- HTTP: a health check so hosting platforms know the server is up -------
 const server = http.createServer((req, res) => {
@@ -53,10 +61,13 @@ class Client {
     this.buffer = Buffer.alloc(0);
     this.room = null;
     this.alive = true;
+    this.lastSeen = Date.now();
+    clients.add(this);
   }
 
   // Parse complete frames out of the byte stream.
   receive(chunk) {
+    this.lastSeen = Date.now(); // any traffic (including pongs) proves it's alive
     this.buffer = Buffer.concat([this.buffer, chunk]);
     while (this.buffer.length >= 2) {
       const b0 = this.buffer[0], b1 = this.buffer[1];
@@ -153,9 +164,18 @@ class Client {
 
   closed() {
     this.alive = false;
+    clients.delete(this);
     this.leave();
   }
 }
+
+setInterval(() => {
+  const now = Date.now();
+  for (const c of clients) {
+    if (now - c.lastSeen > TIMEOUT_MS) { c.close(); c.socket.destroy(); }
+    else c.frame(0x9, Buffer.alloc(0)); // ping
+  }
+}, HEARTBEAT_MS).unref();
 
 // Forget rooms nobody joined within an hour.
 setInterval(() => {
