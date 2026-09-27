@@ -1,7 +1,7 @@
 // Service worker: keeps a copy of the game so it opens (and plays offline
 // modes) without a connection. Online battles still need the network.
 // Bump CACHE whenever the game files change so players get the new version.
-const CACHE = 'chakravyuha-v1.1.0';
+const CACHE = 'chakravyuha-v1.1.1';
 const FILES = ['./', 'index.html', 'index.js', 'index.wasm', 'index.data',
                'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 

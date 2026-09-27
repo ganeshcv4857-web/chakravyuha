@@ -56,10 +56,13 @@ static void show_info(App *a, const char *msg)
     set_phase(a, ONLINE_INFO);
 }
 
+static int connect_tries; /* attempts for the current connection */
+
 static void connect_now(App *a)
 {
     net_connect();
     greeted = false;
+    connect_tries = 1;
     a->ping_timer = 20.0f;
 }
 
@@ -205,6 +208,12 @@ void online_pump(App *a, float dt)
             net_send("PING");
             a->ping_timer = 20.0f;
         }
+    }
+    /* A free server occasionally drops a fresh connection: try again quietly. */
+    if (st == NET_CLOSED && !greeted && connect_tries > 0 && connect_tries < 3) {
+        net_connect();
+        connect_tries++;
+        return;
     }
     if (st == NET_CLOSED && a->online_phase != ONLINE_INFO && a->online_phase != ONLINE_CHOICE &&
         a->online_phase != ONLINE_CODE) {
